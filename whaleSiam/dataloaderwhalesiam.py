@@ -16,6 +16,7 @@ import torchvision
 from torchvision import transforms, utils
 from torchvision.transforms import ToPILImage, Resize, RandomHorizontalFlip, RandomRotation, ToTensor, Compose
 from PIL import Image
+import random
 
 # Ignore warnings
 import warnings
@@ -61,26 +62,37 @@ class HumpbackWhaleDataset(Dataset):
         img_name = os.path.join(self.root_dir,
                                 self.labels_frame.iloc[idx, 0])
         image1 = Image.open(img_name)
-        image1 = image.convert("RGB")
-        image1 = np.array(image)
+        image1 = image1.convert("RGB")
+        image1 = np.array(image1)
 
         should_get_same_class = random.randint(0,1)
 
         if(should_get_same_class):
             label = 0
             while(True):
-                rand = random.randint(0,len(self.labels_frame))
+                ran = random.randint(0,len(self.labels_frame)-1)
 
                 if(self.arr.index(self.labels_frame.iloc[idx, 1]) == self.arr.index(self.labels_frame.iloc[ran, 1])) :
 
                     image2_name = os.path.join(self.root_dir,
-                                    self.labels_frame.iloc[idx, ran])
+                                    self.labels_frame.iloc[ran, 0])
                     image2 = Image.open(image2_name)
-                    image2 = image.convert("RGB")
+                    image2 = image2.convert("RGB")
                     image2 = np.array(image2)
                     break
         else:
             label = 1
+            while(True):
+                ran = random.randint(0,len(self.labels_frame)-1)
+
+                if(self.arr.index(self.labels_frame.iloc[idx, 1]) != self.arr.index(self.labels_frame.iloc[ran, 1])) :
+
+                    image2_name = os.path.join(self.root_dir,
+                                    self.labels_frame.iloc[ran, 0])
+                    image2 = Image.open(image2_name)
+                    image2 = image2.convert("RGB")
+                    image2 = np.array(image2)
+                    break
 
 
 
@@ -93,7 +105,8 @@ class HumpbackWhaleDataset(Dataset):
         if self.transform:
             image1 = self.transform(image1)
             image2 = self.transform(image2)
-
+        #print(image2.shape)
+        #print(image1.shape)
         return image1, image2, label
 #img_size = (224, 224)
 #img = image.convert('RGB')

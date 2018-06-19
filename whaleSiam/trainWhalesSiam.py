@@ -11,7 +11,7 @@ from torchvision import models
 from torchvision import transforms, utils
 from torchvision.transforms import ToPILImage, Resize, RandomHorizontalFlip, RandomRotation, ToTensor, Compose, RandomGrayscale
 from PIL import Image
-import contrastiveLoss
+from contrastiveLoss import ContrastiveLoss
 
 class Net(nn.Module):
 
@@ -39,7 +39,7 @@ class Net(nn.Module):
         )
 
         self.fc1 = nn.Sequential(
-            nn.Linear(8*100*100, 500),
+            nn.Linear(240000, 500),
             nn.ReLU(inplace=True),
 
             nn.Linear(500, 500),
@@ -51,6 +51,7 @@ class Net(nn.Module):
     def forward_once(self, x):
         output = self.cnn1(x)
         output = output.view(output.size()[0], -1)
+        #print(output.size())
         output = self.fc1(output)
         return output
 
@@ -89,7 +90,7 @@ if __name__ == "__main__":
         plt.savefig( "./errors" )
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
-    img_size = (600, 600)
+    img_size = (100, 100)
     composed = Compose([ToPILImage(), Resize(img_size), RandomHorizontalFlip(), RandomGrayscale(p=0.5), 
     					RandomRotation(degrees = 30, center = None), ToTensor(), normalize])
 
@@ -97,7 +98,7 @@ if __name__ == "__main__":
     #test_dataset = TitanicDataset(csvFile = 'test.csv')
 
     train_loader = torch.utils.data.DataLoader(dataset = train_dataset,
-                                               batch_size = 100,
+                                               batch_size = 50,
                                                shuffle = True,
                                                num_workers = 4
                                                )
@@ -114,7 +115,7 @@ if __name__ == "__main__":
     #net.classifier._modules["7"] = nn.Linear(in_features = 4096, out_features = 4250)
     net.cuda()
 
-    optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(net.parameters(), lr=0.00001)
 
     for epoch in range(0, 1000):
         lossSumm = 0
@@ -126,7 +127,7 @@ if __name__ == "__main__":
             correct = 0
             b = b + 1
             image1, image2, label = data
-            image1, image2, label = Variable(image1), Variable(image2), Variable(label)
+            #image1, image2, label = Variable(image1), Variable(image2), Variable(label)
             image1 = image1.cuda()
             image2 = image2.cuda()
             label = label.cuda()
@@ -145,7 +146,7 @@ if __name__ == "__main__":
             #criterion = nn.CrossEntropyLoss()
             #target = target.squeeze()
             #target = target.type(torch.cuda.LongTensor)
-            loss = loss(output1, output2, label)
+            loss = net.loss(output1, output2, label)
             
             loss.backward()
             lossSumm = lossSumm + loss.data[0]
@@ -154,8 +155,9 @@ if __name__ == "__main__":
             
             print("batch:{}, loss:{:.4f}".format(b, loss.data[0]))
                   
-            del loss, output1, output2, label
-        if(epoch%50 == 0):
+            del loss, output1, output2, label, image1, image2
+            torch.cuda.empty_cache()
+        if(epoch%5 == 0):
         	print("saved")
         	torch.save(net.state_dict(), "./model.pth")
 
